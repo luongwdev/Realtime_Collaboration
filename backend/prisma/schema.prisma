@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum ChannelType {
+  GENERAL
+  PRIVATE
+  DIRECT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  MENTION
+  TASK_ASSIGNED
+  TASK_UPDATED
+  DOCUMENT_UPDATED
+}
+
+model User {
+  id               String            @id @default(uuid())
+  email            String            @unique
+  googleId         String?           @unique
+  fullName         String
+  displayName      String
+  timezone         String?
+  avatarUrl        String?
+  passwordHash     String
+  refreshTokenHash String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  ownedWorkspaces  Workspace[]       @relation("WorkspaceOwner")
+  memberships      WorkspaceMember[]
+  sentMessages     Message[]
+  messageReceipts  MessageReceipt[]
+  assignedTasks    Task[]            @relation("TaskAssignee")
+  createdTasks     Task[]            @relation("TaskReporter")
+  notifications    Notification[]
+  activities       ActivityLog[]
+}
+
+model Workspace {
+  id          String            @id @default(uuid())
+  name        String
+  ownerId     String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  owner       User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  memberships WorkspaceMember[]
+  channels    Channel[]
+  messages    Message[]
+  tasks       Task[]
+  documents   Document[]
+  notifications Notification[]
+  activities  ActivityLog[]
+}
+
+model WorkspaceMember {
+  workspaceId String
+  userId      String
+  role        WorkspaceRole     @default(MEMBER)
+  joinedAt    DateTime          @default(now())
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([workspaceId, userId])
+}
+
+model Channel {
+  id          String    @id @default(uuid())
+  workspaceId String
+  name        String
+  type        ChannelType @default(GENERAL)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages    Message[]
+
+  @@index([workspaceId])
+}
+
+model Message {
+  id         String    @id @default(uuid())
+  workspaceId String
+  channelId  String
+  senderId   String
+  content    String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  workspace  Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  channel    Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  sender     User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  receipts   MessageReceipt[]
+
+  @@index([workspaceId, channelId, createdAt])
+}
+
+model MessageReceipt {
+  messageId   String
+  userId      String
+  deliveredAt DateTime?
+  seenAt      DateTime?
+  message     Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+}
+
+model Task {
+  id          String      @id @default(uuid())
+  workspaceId String
+  title       String
+  description String?
+  status      TaskStatus  @default(TODO)
+  assigneeId  String?
+  reporterId  String
+  dueDate     DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignee    User?       @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  reporter    User        @relation("TaskReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status, createdAt])
+}
+
+model Document {
+  id          String            @id @default(uuid())
+  workspaceId String
+  title       String
+  content     String            @default("")
+  version     Int               @default(1)
+  updatedBy   String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  versions    DocumentVersion[]
+
+  @@index([workspaceId, updatedAt])
+}
+
+model DocumentVersion {
+  id          String    @id @default(uuid())
+  documentId  String
+  version     Int
+  content     String
+  updatedBy   String
+  createdAt   DateTime  @default(now())
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, version])
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  workspaceId String?
+  userId      String
+  type        NotificationType
+  payload     Json
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  workspace   Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+}
+
+model ActivityLog {
+  id          String    @id @default(uuid())
+  workspaceId String
+  actorId     String
+  action      String
+  targetType  String
+  targetId    String
+  payload     Json?
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actor       User      @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}

@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: teamflow_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: teamflow
+      POSTGRES_USER: admintf
+      POSTGRES_PASSWORD: 123456
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admintf -d teamflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: teamflow_backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://admintf:123456@postgres:5432/teamflow?schema=public
+      PORT: 4321
+      FRONTEND_URL: http://localhost:3456
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4321:4321"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: teamflow_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4321
+    depends_on:
+      - backend
+    ports:
+      - "3456:3456"
+
+volumes:
+  postgres_data:
