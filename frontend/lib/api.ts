@@ -17,7 +17,7 @@ export type WorkspaceRole = "OWNER" | "ADMIN" | "MEMBER";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ??
-  "http://localhost:4321";
+  "http://3.27.72.228:4321";
 
 export const getApiBaseUrl = () => API_BASE_URL;
 
