@@ -19,7 +19,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex items-center justify-center text-slate-500">
-      Loading...
+      Đang tải...
     </div>
   );
 }
