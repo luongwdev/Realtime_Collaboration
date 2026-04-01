@@ -22,7 +22,7 @@ jobs:
         id: fe_url
         run: |
           URL='${{ vars.NEXT_PUBLIC_API_URL }}'
-          if [ -z "$URL" ]; then URL='http://localhost:4321'; fi
+          if [ -z "$URL" ]; then URL='http://3.27.72.228:4321'; fi
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       # ===== Docker setup =====
