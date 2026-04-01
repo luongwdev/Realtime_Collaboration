@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -14,17 +16,11 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    ports:
-      - "5432:5432"
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ducluong610/realtime-be:latest
     container_name: teamflow_backend
     restart: unless-stopped
-    env_file:
-      - ./backend/.env
     environment:
       DATABASE_URL: postgresql://admintf:123456@postgres:5432/teamflow?schema=public
       PORT: 4321
@@ -36,9 +32,7 @@ services:
       - "4321:4321"
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ducluong610/realtime-fe:latest
     container_name: teamflow_frontend
     restart: unless-stopped
     environment:
