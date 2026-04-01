@@ -13,7 +13,7 @@ export const envValidationSchema = Joi.object({
   GOOGLE_CLIENT_ID: Joi.string().optional(),
   GOOGLE_CLIENT_SECRET: Joi.string().optional(),
   GOOGLE_CALLBACK_URL: Joi.string().uri().optional(),
-  FRONTEND_URL: Joi.string().uri().default('http://localhost:3456'),
+  FRONTEND_URL: Joi.string().uri().default('http://3.27.72.228:3456'),
   AI_PROVIDER: Joi.string().valid('mock', 'openai', 'gemini').default('mock'),
   OPENAI_API_KEY: Joi.string().optional(),
   OPENAI_MODEL: Joi.string().default('gpt-4o-mini'),

@@ -91,7 +91,7 @@ export class AuthController {
     const auth = await this.authService.loginWithGoogle(req.user);
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'http://localhost:3456',
+      'http://3.27.72.228:3456',
     );
     const redirect = `${frontendUrl}/auth/google/callback?access_token=${encodeURIComponent(
       auth.access_token,
