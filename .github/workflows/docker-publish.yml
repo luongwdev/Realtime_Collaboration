@@ -1,0 +1,69 @@
+# Build & push images to Docker Hub on push to main (and manual run).
+#
+# GitHub → Settings → Secrets and variables → Actions → Repository secrets:
+#   DOCKER_USERNAME  — Docker Hub username
+#   DOCKER_PASSWORD  — Docker Hub access token (recommended) or password
+#                     https://hub.docker.com/settings/security
+#
+# Repository variables (optional):
+#   NEXT_PUBLIC_API_URL — public API URL baked into the frontend image (e.g. https://api.example.com)
+
+name: Docker build and push
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  BACKEND_IMAGE_NAME: teamflow-backend
+  FRONTEND_IMAGE_NAME: teamflow-frontend
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve NEXT_PUBLIC_API_URL for frontend build
+        id: fe_url
+        run: |
+          URL='${{ vars.NEXT_PUBLIC_API_URL }}'
+          if [ -z "$URL" ]; then URL='http://localhost:4321'; fi
+          echo "url<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$URL" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Backend — build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Frontend — build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ steps.fe_url.outputs.url }}
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
