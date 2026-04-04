@@ -1,13 +1,23 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from '../auth/dto/register.dto';
 
 const BCRYPT_ROUNDS = 10;
+
+/** User chỉ OAuth: không dùng mật khẩu đăng nhập; hash placeholder để tránh chuỗi rỗng / edge bcrypt */
+async function oauthOnlyPasswordHash(): Promise<string> {
+  return bcrypt.hash(
+    `oauth-only:${randomBytes(32).toString('hex')}`,
+    BCRYPT_ROUNDS,
+  );
+}
 
 @Injectable()
 export class UsersService {
@@ -70,6 +80,9 @@ export class UsersService {
     avatarUrl?: string;
   }): Promise<{ id: string; email: string }> {
     const normalizedEmail = input.email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new BadRequestException('Google account has no email');
+    }
     const byGoogle = await this.prisma.user.findUnique({
       where: { googleId: input.googleId },
       select: { id: true, email: true },
@@ -94,6 +107,7 @@ export class UsersService {
       return byEmail;
     }
 
+    const passwordHash = await oauthOnlyPasswordHash();
     const user = await this.prisma.user.create({
       data: {
         email: normalizedEmail,
@@ -101,11 +115,15 @@ export class UsersService {
         fullName: input.fullName,
         displayName: input.fullName.split(' ')[0] || 'google-user',
         avatarUrl: input.avatarUrl,
-        passwordHash: '',
+        passwordHash,
       },
       select: { id: true, email: true },
     });
     return user;
+  }
+
+  async deleteById(id: string): Promise<void> {
+    await this.prisma.user.delete({ where: { id } });
   }
 
   async validateCredentials(

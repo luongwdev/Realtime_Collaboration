@@ -25,11 +25,17 @@ export class ResponseInterceptor implements NestInterceptor {
       ]) ?? 'Success';
 
     return next.handle().pipe(
-      map((data) => ({
-        data,
-        statusCode: response.statusCode,
-        message,
-      })),
+      map((data) => {
+        // Redirect / file stream: đã gửi response — không bọc JSON (tránh 500 "headers already sent")
+        if (response.headersSent) {
+          return data;
+        }
+        return {
+          data,
+          statusCode: response.statusCode,
+          message,
+        };
+      }),
     );
   }
 }

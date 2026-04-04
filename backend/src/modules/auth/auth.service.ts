@@ -17,7 +17,12 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     const user = await this.usersService.create(dto);
-    return this.buildAuthResponse(user.id, user.email);
+    try {
+      return await this.buildAuthResponse(user.id, user.email);
+    } catch (err) {
+      await this.usersService.deleteById(user.id);
+      throw err;
+    }
   }
 
   async login(email: string, password: string) {
