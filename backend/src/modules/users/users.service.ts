@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from '../auth/dto/register.dto';
 
@@ -17,6 +17,11 @@ async function oauthOnlyPasswordHash(): Promise<string> {
     `oauth-only:${randomBytes(32).toString('hex')}`,
     BCRYPT_ROUNDS,
   );
+}
+
+/** JWT refresh token dài > 72 byte → bcrypt có thể throw. Chuẩn hóa bằng SHA-256 rồi mới bcrypt. */
+function sha256Hex(input: string): string {
+  return createHash('sha256').update(input, 'utf8').digest('hex');
 }
 
 @Injectable()
@@ -166,7 +171,8 @@ export class UsersService {
   }
 
   async setRefreshToken(userId: string, refreshToken: string): Promise<void> {
-    const refreshTokenHash = await bcrypt.hash(refreshToken, BCRYPT_ROUNDS);
+    const digest = sha256Hex(refreshToken);
+    const refreshTokenHash = await bcrypt.hash(digest, BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id: userId },
       data: { refreshTokenHash },
@@ -191,6 +197,7 @@ export class UsersService {
     if (!user?.refreshTokenHash) {
       return false;
     }
-    return bcrypt.compare(refreshToken, user.refreshTokenHash);
+    const digest = sha256Hex(refreshToken);
+    return bcrypt.compare(digest, user.refreshTokenHash);
   }
 }
