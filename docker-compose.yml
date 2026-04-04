@@ -1,5 +1,8 @@
 version: "3.9"
 
+# Copy env.example → .env cạnh file này (JWT, Google, FRONTEND_URL, …).
+# docker compose tự đọc .env để thay ${VAR}.
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -18,13 +21,20 @@ services:
       retries: 10
 
   backend:
-    image: ducluong610/realtime-be:latest
+    build:
+      context: ./backend
+    image: ${DOCKER_USERNAME:-ducluong610}/teamflow-backend:latest
     container_name: teamflow_backend
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://admintf:123456@postgres:5432/teamflow?schema=public
       PORT: 4321
-      FRONTEND_URL: https://api.ducluong06.dpdns.org
+      FRONTEND_URL: ${FRONTEND_URL:-https://ducluong06.dpdns.org}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-https://api.ducluong06.dpdns.org/auth/google/callback}
     depends_on:
       postgres:
         condition: service_healthy
@@ -32,11 +42,13 @@ services:
       - "4321:4321"
 
   frontend:
-    image: ducluong610/realtime-fe:latest
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.ducluong06.dpdns.org}
+    image: ${DOCKER_USERNAME:-ducluong610}/teamflow-frontend:latest
     container_name: teamflow_frontend
     restart: unless-stopped
-    environment:
-      NEXT_PUBLIC_API_URL: https://api.ducluong06.dpdns.org
     depends_on:
       - backend
     ports:

@@ -5,7 +5,8 @@ RUN npm install
 
 FROM node:20-alpine AS builder
 WORKDIR /app
-ARG NEXT_PUBLIC_API_URL=http://3.27.72.228:4321
+# Bắt buộc truyền khi build: --build-arg NEXT_PUBLIC_API_URL=https://api.<domain>
+ARG NEXT_PUBLIC_API_URL=https://api.ducluong06.dpdns.org
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

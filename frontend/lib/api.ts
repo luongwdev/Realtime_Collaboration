@@ -15,9 +15,12 @@ export type AuthPayload = {
 
 export type WorkspaceRole = "OWNER" | "ADMIN" | "MEMBER";
 
+// NEXT_PUBLIC_* được nhúng lúc `next build` — runtime env trên container không đổi được.
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ??
-  "http://3.27.72.228:4321";
+  (process.env.NODE_ENV === "development"
+    ? "http://localhost:4321"
+    : "https://api.ducluong06.dpdns.org");
 
 export const getApiBaseUrl = () => API_BASE_URL;
 
