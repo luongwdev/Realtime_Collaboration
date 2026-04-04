@@ -1,0 +1,16 @@
+# Build local (không dùng trên server). Ví dụ:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml build --no-cache
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d
+
+services:
+  backend:
+    build:
+      context: ./backend
+    image: ${DOCKER_USERNAME:-ducluong610}/teamflow-backend:latest
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.ducluong06.dpdns.org}
+    image: ${DOCKER_USERNAME:-ducluong610}/teamflow-frontend:latest
