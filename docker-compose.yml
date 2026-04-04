@@ -24,7 +24,7 @@ services:
     environment:
       DATABASE_URL: postgresql://admintf:123456@postgres:5432/teamflow?schema=public
       PORT: 4321
-      FRONTEND_URL: http://3.27.72.228:3456
+      FRONTEND_URL: https://api.ducluong06.dpdns.org
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,7 +36,7 @@ services:
     container_name: teamflow_frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://3.27.72.228:4321
+      NEXT_PUBLIC_API_URL: https://api.ducluong06.dpdns.org
     depends_on:
       - backend
     ports:
